@@ -43,11 +43,12 @@ class mySQLConnector {
             $sql->execute();
             if(!$sql->setFetchMode(PDO::FETCH_ASSOC)) {return false;}
             $this->selected_data = $sql->fetchAll();
+            $this->error = '';
             return true;
         }
         catch(PDOException $e) 
         {
-            $this->error = 'method select('.$select_clause.', '.$from_clause.', '.$where_clause.', '.$groupby_clause.', '.$orderby_clause.', '.$limit_clause.') failed:' ."\n" .'> ' . $e->getMessage();
+            $this->error = 'method select('.$select_clause.', '.$from_clause.', '.$where_clause.', '.$groupby_clause.', '.$orderby_clause.', '.$limit_clause.') failed:' ."\n" .'> ' . $e->getMessage() ."\n" .'>> ' .$request;
             return false;
         }
     }
@@ -60,7 +61,11 @@ class mySQLConnector {
 		foreach($row as $field => $value)
 		{
 			$request_fields .= '`'.$field.'`,';
-			$request_values .= '\''.$value.'\',';
+            if(is_numeric($value) || strpos($value, '()') !== false) {
+                $request_values .= $value.',';
+            } else {
+                $request_values .= '\''.$value.'\',';
+            }
 		}
 
 		$request_fields = substr($request_fields, 0, strlen($request_fields)-1);
@@ -71,11 +76,12 @@ class mySQLConnector {
         {
             $this->connection->exec($request);
             $this->last_insert_id = $this->connection->lastInsertId();
+            $this->error = '';
             return true;
         }
         catch(PDOException $e)
         {
-            $this->error = 'method insert('.$table.', '.str_replace("\n", "", print_r($row, true)).') failed:' ."\n" .'> ' . $e->getMessage();
+            $this->error = 'method insert('.$table.', '.str_replace("\n", "", print_r($row, true)).') failed:' ."\n" .'> ' . $e->getMessage() ."\n" .'>> ' .$request;
             return false;
         }
     }
@@ -86,7 +92,11 @@ class mySQLConnector {
 		
 		foreach($row as $field => $value)
 		{
-			$request_fields_values .= '`'.$field.'` = \''.$value.'\', ';
+            if(is_numeric($value) || strpos($value, '()') !== false) {
+                $request_fields_values .= '`'.$field.'` = '.$value.', ';
+            } else {
+                $request_fields_values .= '`'.$field.'` = \''.$value.'\', ';
+            }
 		}
 		
 		$request_fields_values = substr($request_fields_values, 0, strlen($request_fields_values)-2);
@@ -96,11 +106,12 @@ class mySQLConnector {
         {
             $sql = $this->connection->prepare($request);
             $sql->execute();
+            $this->error = '';
             return true;
         }
         catch(PDOException $e)
         {
-            $this->error = 'method update('.$table.', '.$where_clause.', '.str_replace("\n", "", print_r($row, true)).') failed:' ."\n" .'> ' . $e->getMessage();
+            $this->error = 'method update('.$table.', '.$where_clause.', '.str_replace("\n", "", print_r($row, true)).') failed:' ."\n" .'> ' . $e->getMessage() ."\n" .'>> ' .$request;
             return false;
         }
     }
@@ -112,11 +123,12 @@ class mySQLConnector {
         try 
         {
             $this->connection->exec($request);
+            $this->error = '';
             return true;
         }
         catch(PDOException $e)
         {
-            $this->error = 'method delete('.$table.', '.$where_clause.') failed:' ."\n" .'> ' . $e->getMessage();
+            $this->error = 'method delete('.$table.', '.$where_clause.') failed:' ."\n" .'> ' . $e->getMessage() ."\n" .'>> ' .$request;
             return false;
         }
     }
@@ -126,11 +138,12 @@ class mySQLConnector {
 		try 
         {
             $this->connection->exec($request);
+            $this->error = '';
             return true;
         }
         catch(PDOException $e)
         {
-            $this->error = 'method query('.$request.') failed:' ."\n" .'> ' . $e->getMessage();
+            $this->error = 'method query('.$request.') failed:' ."\n" .'> ' . $e->getMessage() ."\n" .'>> ' .$request;
             return false;
         }
     }
@@ -140,6 +153,7 @@ class mySQLConnector {
         try 
         {
             $this->connection->beginTransaction();
+            $this->error = '';
             return true;
         }
         catch(PDOException $e)
@@ -154,6 +168,7 @@ class mySQLConnector {
         try 
         {
             $this->connection->commit();
+            $this->error = '';
             return true;
         }
         catch(PDOException $e)
@@ -168,6 +183,7 @@ class mySQLConnector {
         try 
         {
             $this->connection->rollBack();
+            $this->error = '';
             return true;
         }
         catch(PDOException $e)
